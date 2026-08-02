@@ -1,0 +1,57 @@
+services:
+  datametric:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: datametric-app
+    ports:
+      - "8000:8000"
+    environment:
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=clickhouse_password
+      - CLICKHOUSE_DB=datametric
+      - DEBUG=true
+    volumes:
+      - ./src:/app/src
+      - ./main.py:/app/main.py
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - datametric-network
+    restart: unless-stopped
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: datametric-clickhouse
+    hostname: clickhouse
+    environment:
+      - CLICKHOUSE_DB=datametric
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=clickhouse_password
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+      - "9009:9009"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./init-clickhouse.sql:/docker-entrypoint-initdb.d/init-clickhouse.sql
+    networks:
+      - datametric-network
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+networks:
+  datametric-network:
+    driver: bridge
+
+volumes:
+  clickhouse_data:
+    driver: local
