@@ -22,10 +22,10 @@ test:
 	uv run pytest
 
 lint:
-	uv run flake8
+	uv run ruff check .
 
 format:
-	uv run black .
+	uv run ruff format .
 
 clean:
 	uv run find . -type f -name '*.pyc' -delete

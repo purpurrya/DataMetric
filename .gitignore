@@ -56,3 +56,10 @@ htmlcov/
 
 # Generated data
 site_actions.csv
+
+# Linters / type checkers
+.ruff_cache/
+.mypy_cache/
+
+# Editor backups
+*.orig

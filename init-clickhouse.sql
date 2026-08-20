@@ -1,4 +1,6 @@
-CREATE TABLE IF NOT EXISTS events
+CREATE DATABASE IF NOT EXISTS datametric;
+
+CREATE TABLE IF NOT EXISTS datametric.events
 (
     session_id String,
     user_id UInt32,
