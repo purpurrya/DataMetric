@@ -1,28 +1,30 @@
-import clickhouse_connect
+import logging
 
-from config import settings
+from scripts.ch_client import get_client
+from scripts.config.logging import set_logging
 
-
-def get_client():
-    return clickhouse_connect.get_client(
-        host=settings.clickhouse_host,
-        port=settings.clickhouse_port,
-        database=settings.clickhouse_db,
-        username=settings.clickhouse_user,
-        password=settings.clickhouse_password,
-    )
+set_logging()
+logger = logging.getLogger(__name__)
 
 
 def funnel_conversion(client):
     result = client.query("""
         SELECT
-            countIf(user_action IN ('add_to_cart', 'remove_from_cart', 'update_cart')) AS reached_cart,
+            countIf(
+                user_action IN ('add_to_cart', 'remove_from_cart', 'update_cart')
+            ) AS reached_cart,
             countIf(user_action = 'checkout') AS reached_checkout,
             countIf(user_action = 'purchase_success') AS reached_purchase
         FROM (
             SELECT DISTINCT session_id, user_action
             FROM datametric.events
-            WHERE user_action IN ('add_to_cart', 'remove_from_cart', 'update_cart', 'checkout', 'purchase_success')
+            WHERE user_action IN (
+                'add_to_cart',
+                'remove_from_cart',
+                'update_cart',
+                'checkout',
+                'purchase_success'
+            )
         )
     """)
     return result.result_rows[0]
@@ -55,7 +57,10 @@ def cart_abandonment_rate(client):
             (cart_sessions - purchase_sessions) / cart_sessions AS abandonment_rate
         FROM (
             SELECT
-                uniqExactIf(session_id, user_action IN ('add_to_cart', 'remove_from_cart', 'update_cart')) AS cart_sessions,
+                uniqExactIf(
+                    session_id,
+                    user_action IN ('add_to_cart', 'remove_from_cart', 'update_cart')
+                ) AS cart_sessions,
                 uniqExactIf(session_id, user_action = 'purchase_success') AS purchase_sessions
             FROM events
         )
@@ -66,7 +71,7 @@ def cart_abandonment_rate(client):
 def purchase_fail_rate(client):
     result = client.query("""
         SELECT
-            failed_sessions / checkout_sessions AS fail_rate   
+            failed_sessions / checkout_sessions AS fail_rate
         FROM (
             SELECT
                 uniqExactIf(session_id, user_action = 'checkout') AS checkout_sessions,
@@ -118,11 +123,11 @@ def daily_metrics(client):
 if __name__ == "__main__":
     client = get_client()
 
-    print(funnel_conversion(client))
-    print(events_per_session(client))
-    print(avg_order_value(client))
-    print(cart_abandonment_rate(client))
-    print(purchase_fail_rate(client))
-    print(session_duration(client))
-    print(revenue_by_city(client))
-    print(daily_metrics(client))
+    logger.info("funnel conversion: %s", funnel_conversion(client))
+    logger.info("events per session: %s", events_per_session(client))
+    logger.info("avg order value: %s", avg_order_value(client))
+    logger.info("cart abandonment rate: %s", cart_abandonment_rate(client))
+    logger.info("purchase fail rate: %s", purchase_fail_rate(client))
+    logger.info("session duration: %s", session_duration(client))
+    logger.info("revenue by city: %s", revenue_by_city(client))
+    logger.info("daily metrics: %s", daily_metrics(client))

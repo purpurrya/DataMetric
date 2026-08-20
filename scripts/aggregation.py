@@ -1,6 +1,14 @@
+import logging
+
 import pandas as pd
 
+from scripts.config.logging import set_logging
+
+set_logging()
+logger = logging.getLogger(__name__)
+
 CART_ACTIONS = ["add_to_cart", "remove_from_cart", "update_cart"]
+
 
 def funnel_conversion(df: pd.DataFrame) -> None:
     total_sessions = df["session_id"].nunique()
@@ -11,9 +19,9 @@ def funnel_conversion(df: pd.DataFrame) -> None:
         "session_id"
     ].nunique()
 
-    print(f"reach cart:       {reached_cart / total_sessions:.3f}")
-    print(f"reach checkout:   {reached_checkout / reached_cart:.3f}")
-    print(f"purchase success: {reached_purchase / reached_checkout:.3f}")
+    logger.info("reach cart:       %.3f", reached_cart / total_sessions)
+    logger.info("reach checkout:   %.3f", reached_checkout / reached_cart)
+    logger.info("purchase success: %.3f", reached_purchase / reached_checkout)
 
 
 def events_per_session(df: pd.DataFrame) -> pd.Series:
@@ -69,10 +77,13 @@ if __name__ == "__main__":
     df = pd.read_csv("site_actions.csv", parse_dates=["timestamp"])
 
     funnel_conversion(df)
-    print(events_per_session(df).describe())
-    print(avg_order_value(df))
-    print(cart_abandonment_rate(df))
-    print(purchase_fail_rate(df))
-    print(revenue_by_city(df))
-    print(daily_metrics(df))
-    print(session_duration(df)["duration_seconds"].describe())
+    logger.info("events per session:\n%s", events_per_session(df).describe())
+    logger.info("avg order value: %s", avg_order_value(df))
+    logger.info("cart abandonment rate: %s", cart_abandonment_rate(df))
+    logger.info("purchase fail rate: %s", purchase_fail_rate(df))
+    logger.info("revenue by city:\n%s", revenue_by_city(df))
+    logger.info("daily metrics:\n%s", daily_metrics(df))
+    logger.info(
+        "session duration:\n%s",
+        session_duration(df)["duration_seconds"].describe(),
+    )
