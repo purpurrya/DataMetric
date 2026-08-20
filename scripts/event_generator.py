@@ -6,36 +6,36 @@ RNG = np.random.default_rng(42)
 N_USERS = 2000
 N_SESSIONS = 20000
 DAYS = 30
-START_DATE = pd.Timestamp('2026-01-01')
+START_DATE = pd.Timestamp("2026-01-01")
 
 CITIES = [
-    'New York',
-    'Los Angeles',
-    'Chicago',
-    'Houston',
-    'Phoenix',
-    'Philadelphia',
-    'San Antonio',
-    'San Diego',
-    'Dallas',
-    'San Jose',
+    "New York",
+    "Los Angeles",
+    "Chicago",
+    "Houston",
+    "Phoenix",
+    "Philadelphia",
+    "San Antonio",
+    "San Diego",
+    "Dallas",
+    "San Jose",
 ]
 
 BROWSE_ACTIONS = [
-    'view',
-    'view_category',
-    'like',
-    'unlike',
-    'compare',
-    'share',
-    'click',
-    'search',
-    'filter',
+    "view",
+    "view_category",
+    "like",
+    "unlike",
+    "compare",
+    "share",
+    "click",
+    "search",
+    "filter",
 ]
 
-CART_ACTIONS = ['add_to_cart', 'remove_from_cart', 'update_cart']
+CART_ACTIONS = ["add_to_cart", "remove_from_cart", "update_cart"]
 
-MONETARY_ACTIONS = {'add_to_cart', 'checkout', 'purchase', 'purchase_success'}
+MONETARY_ACTIONS = {"add_to_cart", "checkout", "purchase", "purchase_success"}
 
 P_REACH_CART = 0.4
 P_REACH_CHECKOUT = 0.6
@@ -59,14 +59,16 @@ def build_session(user_id, city, session_id, session_start):
 
     def add_event(action):
         nonlocal t
-        events.append({
-            'session_id': session_id,
-            'user_id': user_id,
-            'city': city,
-            'user_action': action,
-            'amount': random_amount() if action in MONETARY_ACTIONS else 0,
-            'timestamp': t,
-        })
+        events.append(
+            {
+                "session_id": session_id,
+                "user_id": user_id,
+                "city": city,
+                "user_action": action,
+                "amount": random_amount() if action in MONETARY_ACTIONS else 0,
+                "timestamp": t,
+            }
+        )
         t += pd.Timedelta(seconds=int(RNG.integers(1, 300)))
 
     for _ in range(int(RNG.integers(1, 10))):
@@ -76,16 +78,16 @@ def build_session(user_id, city, session_id, session_start):
         add_event(RNG.choice(CART_ACTIONS, p=[0.5, 0.3, 0.2]))
 
         if RNG.random() < P_REACH_CHECKOUT:
-            add_event('checkout')
+            add_event("checkout")
 
             if RNG.random() < P_PURCHASE_SUCCESS:
-                add_event('purchase')
-                add_event('purchase_success')
+                add_event("purchase")
+                add_event("purchase_success")
 
                 if RNG.random() < P_LEAVE_REVIEW:
-                    add_event('review')
+                    add_event("review")
             else:
-                add_event('purchase_fail')
+                add_event("purchase_fail")
 
     return events
 
@@ -105,13 +107,13 @@ def generate_data():
         city = RNG.choice(CITIES)
         session_start = session_start_time()
 
-        all_events.extend(build_session(user_id, city, f'sess-{i}', session_start))
+        all_events.extend(build_session(user_id, city, f"sess-{i}", session_start))
 
     df = pd.DataFrame(all_events)
-    df.to_csv('site_actions.csv', index=False, encoding='utf-8')
+    df.to_csv("site_actions.csv", index=False, encoding="utf-8")
 
     return df
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     generate_data()

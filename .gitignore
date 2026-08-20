@@ -53,3 +53,6 @@ htmlcov/
 # Database
 *.db
 *.sqlite3
+
+# Generated data
+site_actions.csv
