@@ -34,14 +34,13 @@ def get_ch_client():
 def health(client=Depends(get_ch_client)):
     try:
         row_count = client.query("SELECT COUNT(*) FROM events").result_rows[0][0]
-        events_stat = "empty" if row_count == 0 else row_count
     except Exception as exc:
         return Response(
             content=f'{{"status": "error", "detail": "{exc}"}}',
             status_code=503,
             media_type="application/json",
         )
-    return HealthResponse(status="ok", events_stat=events_stat)
+    return HealthResponse(status="ok", events_rows=row_count)
 
 
 @app.get(

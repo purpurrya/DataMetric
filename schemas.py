@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class HealthResponse(BaseModel):
     status: str
-    events_stat: str | int
+    events_rows: int
 
 
 class FunnelResponse(BaseModel):
