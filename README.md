@@ -1,31 +1,70 @@
 # DataMetric
 
-A project created with FastAPI CLI.
+Пет-проект для практики. 
+Генерирует синтетические события интернет-магазина, загружает их в ClickHouse и отдаёт аналитику через FastAPI.
 
-## Quick Start
+## Технологии
+- Python
+- FastAPI
+- ClickHouse
+- Pandas / NumPy
+- Docker Compose
+- uv
 
-### Start the development server
+## Развёртывание
 
+### Клонирование репозитория
 ```bash
-uv run fastapi dev
+git clone https://github.com/purpurrya/DataMetric.git
+cd DataMetric
 ```
 
-Visit http://localhost:8000
-
-### Deploy to FastAPI Cloud
-
-Sign up and log in at https://fastapicloud.com, then deploy with:
-
+### Установка зависимостей
 ```bash
-uv run fastapi deploy
+uv sync
 ```
 
-## Project Structure
+### Настройка окружения
+```bash
+cp .env.example .env
+```
 
-- `main.py` - Your FastAPI application
-- `pyproject.toml` - Project dependencies
+### Запуск ClickHouse и приложения
+```bash
+docker compose up -d
+```
 
-## Learn More
+### Генерация синтетических данных
+```bash
+uv run python -m scripts.event_generator
+```
 
-- [FastAPI Documentation](https://fastapi.tiangolo.com)
-- [FastAPI Cloud](https://fastapicloud.com)
+### Загрузка данных в ClickHouse
+```bash
+uv run python -m scripts.ch_loader
+```
+
+API будет доступно по адресу:
+```
+http://localhost:8000/docs
+```
+
+## API
+
+### Health
+- `GET /health` — проверка доступности ClickHouse
+
+### Статистика
+- `GET /stat/funnel` — конверсия по воронке view → cart → checkout → purchase
+- `GET /stat/revenue-by-city` — доход по городам
+- `GET /stat/daily` — сессии и доход по дням
+- `GET /stat/summary` — средний чек, cart abandonment rate, purchase fail rate, длительность сессий
+
+## Структура проекта
+- `main.py` — FastAPI-приложение
+- `schemas.py` — Pydantic-модели ответов
+- `scripts/event_generator.py` — генерация синтетических событий
+- `scripts/ch_loader.py` — загрузка csv в ClickHouse
+- `scripts/aggregation.py` — расчёт метрик на pandas
+- `scripts/sql_aggregation.py` — те же метрики на SQL
+- `sql/` — миграции ClickHouse
