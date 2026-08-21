@@ -9,12 +9,12 @@ services:
     environment:
       - CLICKHOUSE_HOST=clickhouse
       - CLICKHOUSE_PORT=8123
-      - CLICKHOUSE_USER=default
-      - CLICKHOUSE_PASSWORD=clickhouse_password
-      - CLICKHOUSE_DB=datametric
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB}
       - DEBUG=true
     volumes:
-      - ./src:/app/src
+      - ./scripts:/app/scripts
       - ./main.py:/app/main.py
     depends_on:
       clickhouse:
@@ -28,9 +28,9 @@ services:
     container_name: datametric-clickhouse
     hostname: clickhouse
     environment:
-      - CLICKHOUSE_DB=datametric
-      - CLICKHOUSE_USER=default
-      - CLICKHOUSE_PASSWORD=clickhouse_password
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
       - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
     ports:
       - "8123:8123"

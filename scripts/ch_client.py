@@ -1,5 +1,6 @@
 import clickhouse_connect
-from config.settings import settings
+
+from scripts.config.settings import settings
 
 
 def get_client():
