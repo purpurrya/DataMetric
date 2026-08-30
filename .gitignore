@@ -54,8 +54,8 @@ htmlcov/
 *.db
 *.sqlite3
 
-# Generated data
-site_actions.csv
+# Dataset
+data/raw/
 
 # Linters / type checkers
 .ruff_cache/

@@ -8,6 +8,7 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "numpy>=1.26.0",
     "pandas>=2.1.0",
+    "kaggle>=2.2.4",
 ]
 
 [tool.uv]

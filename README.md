@@ -1,7 +1,8 @@
 # DataMetric
 
 Пет-проект для практики. 
-Генерирует синтетические события интернет-магазина, загружает их в ClickHouse и отдаёт аналитику через FastAPI.
+На основе Retail Rocket ecommerce dataset (kaggle.com/datasets/retailrocket/ecommerce-dataset) загружает данные в ClickHouse и отдаёт аналитику через FastAPI.
+Первая версия, где вместо работы с реальным датасетом осуществлялась работа с генерируемыми синтетическими данными хранится в ветке synth-ver репозитория.
 
 ## Технологии
 - Python
@@ -34,14 +35,16 @@ cp .env.example .env
 docker compose up -d
 ```
 
-### Генерация синтетических данных
+### Скачивание датасета
+Используется [Retail Rocket ecommerce dataset](https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset).
+Нужен настроенный Kaggle API токен (`kaggle.json` в `~/.kaggle/`, см. [документацию Kaggle API](https://www.kaggle.com/docs/api)).
 ```bash
-uv run python -m scripts.event_generator
+make download-data
 ```
 
 ### Загрузка данных в ClickHouse
 ```bash
-uv run python -m scripts.ch_loader
+make load
 ```
 
 API будет доступно по адресу:
@@ -55,16 +58,18 @@ http://localhost:8000/docs
 - `GET /health` — проверка доступности ClickHouse
 
 ### Статистика
-- `GET /stat/funnel` — конверсия по воронке view → cart → checkout → purchase
-- `GET /stat/revenue-by-city` — доход по городам
-- `GET /stat/daily` — сессии и доход по дням
-- `GET /stat/summary` — средний чек, cart abandonment rate, purchase fail rate, длительность сессий
+- `GET /stat/funnel` — конверсия по воронке view → cart (addtocart) → purchase (transaction)
+- `GET /stat/purchases-by-category` — количество покупок по категориям товара
+- `GET /stat/daily` — сессии и транзакции по дням
+- `GET /stat/summary` — среднее число товаров в транзакции, cart abandonment rate, view-to-cart rate, статистика длительности и размера сессий
 
 ## Структура проекта
 - `main.py` — FastAPI-приложение
 - `schemas.py` — Pydantic-модели ответов
-- `scripts/event_generator.py` — генерация синтетических событий
-- `scripts/ch_loader.py` — загрузка csv в ClickHouse
+- `scripts/ch_loader.py` — загрузка датасета (events, item_properties, category_tree) в ClickHouse
 - `scripts/aggregation.py` — расчёт метрик на pandas
 - `scripts/sql_aggregation.py` — те же метрики на SQL
 - `sql/` — миграции ClickHouse
+
+Версия проекта на синтетически сгенерированных данных (до перехода на Retail
+Rocket) сохранена в ветке `synth-ver`.

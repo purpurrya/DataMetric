@@ -2,48 +2,41 @@ import logging
 
 import pandas as pd
 
+from scripts.ch_loader import _sessionize
 from scripts.config.logging import set_logging
 
 set_logging()
 logger = logging.getLogger(__name__)
 
-CART_ACTIONS = ["add_to_cart", "remove_from_cart", "update_cart"]
-
 
 def funnel_conversion(df: pd.DataFrame) -> None:
     total_sessions = df["session_id"].nunique()
+    reached_cart = df[df["event_type"] == "addtocart"]["session_id"].nunique()
+    reached_purchase = df[df["event_type"] == "transaction"]["session_id"].nunique()
 
-    reached_cart = df[df["user_action"].isin(CART_ACTIONS)]["session_id"].nunique()
-    reached_checkout = df[df["user_action"] == "checkout"]["session_id"].nunique()
-    reached_purchase = df[df["user_action"] == "purchase_success"][
-        "session_id"
-    ].nunique()
-
-    logger.info("reach cart:       %.3f", reached_cart / total_sessions)
-    logger.info("reach checkout:   %.3f", reached_checkout / reached_cart)
-    logger.info("purchase success: %.3f", reached_purchase / reached_checkout)
+    logger.info("reach cart:     %.3f", reached_cart / total_sessions)
+    logger.info("reach purchase: %.3f", reached_purchase / reached_cart)
 
 
 def events_per_session(df: pd.DataFrame) -> pd.Series:
     return df.groupby("session_id").size()
 
 
-def avg_order_value(df: pd.DataFrame) -> float:
-    return df[df["user_action"] == "purchase_success"]["amount"].mean()
+def avg_items_per_transaction(df: pd.DataFrame) -> float:
+    purchases = df[df["event_type"] == "transaction"].dropna(subset=["transaction_id"])
+    return purchases.groupby("transaction_id").size().mean()
 
 
 def cart_abandonment_rate(df: pd.DataFrame) -> float:
-    reached_cart = df[df["user_action"].isin(CART_ACTIONS)]["session_id"].nunique()
-    reached_purchase = df[df["user_action"] == "purchase_success"][
-        "session_id"
-    ].nunique()
-    return (reached_cart - reached_purchase) / reached_cart
+    cart_sessions = df[df["event_type"] == "addtocart"]["session_id"].nunique()
+    purchase_sessions = df[df["event_type"] == "transaction"]["session_id"].nunique()
+    return (cart_sessions - purchase_sessions) / cart_sessions
 
 
-def purchase_fail_rate(df: pd.DataFrame) -> float:
-    reached_checkout = df[df["user_action"] == "checkout"]["session_id"].nunique()
-    failed = df[df["user_action"] == "purchase_fail"]["session_id"].nunique()
-    return failed / reached_checkout
+def view_to_cart_rate(df: pd.DataFrame) -> float:
+    total_sessions = df["session_id"].nunique()
+    reached_cart = df[df["event_type"] == "addtocart"]["session_id"].nunique()
+    return reached_cart / total_sessions
 
 
 def session_duration(df: pd.DataFrame) -> pd.DataFrame:
@@ -54,36 +47,44 @@ def session_duration(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def revenue_by_city(df: pd.DataFrame) -> pd.Series:
-    return (
-        df[df["user_action"] == "purchase_success"]
-        .groupby("city")["amount"]
-        .sum()
-        .sort_values(ascending=False)
-    )
+def purchases_by_category(df: pd.DataFrame, item_categories: pd.Series) -> pd.Series:
+    """item_categories: item_id -> category_id (см. загрузку ниже)."""
+    purchases = df[df["event_type"] == "transaction"].copy()
+    purchases["category_id"] = purchases["item_id"].map(item_categories)
+    return purchases.groupby("category_id").size().sort_values(ascending=False)
 
 
 def daily_metrics(df: pd.DataFrame) -> pd.DataFrame:
-    daily_revenue = (
-        df[df["user_action"] == "purchase_success"]
-        .groupby(df["timestamp"].dt.date)["amount"]
-        .sum()
-    )
     daily_sessions = df.groupby(df["timestamp"].dt.date)["session_id"].nunique()
-    return pd.DataFrame({"sessions": daily_sessions, "revenue": daily_revenue})
+    daily_transactions = (
+        df[df["event_type"] == "transaction"].groupby(df["timestamp"].dt.date).size()
+    )
+    return pd.DataFrame(
+        {"sessions": daily_sessions, "transactions": daily_transactions}
+    )
 
 
 if __name__ == "__main__":
-    df = pd.read_csv("site_actions.csv", parse_dates=["timestamp"])
+    events_df = pd.read_csv("data/raw/events.csv")
+    events_df["timestamp"] = pd.to_datetime(events_df["timestamp"], unit="ms")
+    events_df = events_df.rename(
+        columns={
+            "visitorid": "visitor_id",
+            "itemid": "item_id",
+            "event": "event_type",
+            "transactionid": "transaction_id",
+        }
+    )
 
-    funnel_conversion(df)
-    logger.info("events per session:\n%s", events_per_session(df).describe())
-    logger.info("avg order value: %s", avg_order_value(df))
-    logger.info("cart abandonment rate: %s", cart_abandonment_rate(df))
-    logger.info("purchase fail rate: %s", purchase_fail_rate(df))
-    logger.info("revenue by city:\n%s", revenue_by_city(df))
-    logger.info("daily metrics:\n%s", daily_metrics(df))
+    events_df = _sessionize(events_df)
+
+    funnel_conversion(events_df)
+    logger.info("events per session:\n%s", events_per_session(events_df).describe())
+    logger.info("avg items per transaction: %s", avg_items_per_transaction(events_df))
+    logger.info("cart abandonment rate: %s", cart_abandonment_rate(events_df))
+    logger.info("view to cart rate: %s", view_to_cart_rate(events_df))
+    logger.info("daily metrics:\n%s", daily_metrics(events_df))
     logger.info(
         "session duration:\n%s",
-        session_duration(df)["duration_seconds"].describe(),
+        session_duration(events_df)["duration_seconds"].describe(),
     )

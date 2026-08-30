@@ -7,26 +7,26 @@ class HealthResponse(BaseModel):
 
 
 class FunnelResponse(BaseModel):
+    total_sessions: int
     reached_cart: int
-    reached_checkout: int
     reached_purchase: int
 
 
-class CityRevenue(BaseModel):
-    city: str
-    revenue: float
+class CategoryPurchases(BaseModel):
+    category_id: str
+    purchases: int
 
 
 class DailyMetric(BaseModel):
     day: str
     sessions: int
-    revenue: float
+    transactions: int
 
 
 class SummaryResponse(BaseModel):
-    avg_order_value: float
+    avg_items_per_transaction: float
     cart_abandonment_rate: float
-    purchase_fail_rate: float
+    view_to_cart_rate: float
     session_duration_avg: float
     session_duration_median: float
     session_duration_max: float

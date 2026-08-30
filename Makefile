@@ -2,15 +2,17 @@
 
 help:
 	@echo "Available commands:"
-	@echo "  make install      Install dependencies"
-	@echo "  make dev          Run development server"
-	@echo "  make test         Run tests"
-	@echo "  make lint         Run linter"
-	@echo "  make format       Format code"
-	@echo "  make clean        Clean cache files"
-	@echo "  make docker-build Build Docker image"
-	@echo "  make docker-up    Start Docker containers"
-	@echo "  make docker-down  Stop Docker containers"
+	@echo "  make install       Install dependencies"
+	@echo "  make dev           Run development server"
+	@echo "  make test          Run tests"
+	@echo "  make lint          Run linter"
+	@echo "  make format        Format code"
+	@echo "  make clean         Clean cache files"
+	@echo "  make docker-build  Build Docker image"
+	@echo "  make docker-up     Start Docker containers"
+	@echo "  make docker-down   Stop Docker containers"
+	@echo "  make download-data Download dataset"
+	@echo "  make load          Load dataset to ClickHouse"
 
 install:
 	uv sync
@@ -39,3 +41,9 @@ docker-up:
 
 docker-down:
 	docker-compose down
+
+download-data:
+	kaggle datasets download -d retailrocket/ecommerce-dataset -p data/raw --unzip
+
+load:
+	uv run python -m scripts.ch_loader

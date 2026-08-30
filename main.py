@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI, Response
 
 from schemas import (
-    CityRevenue,
+    CategoryPurchases,
     DailyMetric,
     FunnelResponse,
     HealthResponse,
@@ -12,7 +12,7 @@ from scripts.ch_client import get_client
 
 app = FastAPI(
     title="DataMetric API",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 
@@ -47,39 +47,42 @@ def health(client=Depends(get_ch_client)):
     "/stat/funnel",
     response_model=FunnelResponse,
     summary="Конверсия по воронке",
-    description="Количество пользователей, достигших этапов cart, checkout, purchase",
+    description="Количество сессий, дошедших до этапов cart (addtocart), purchase (transaction)",
     tags=["Stat"],
 )
 def funnel(client=Depends(get_ch_client)):
-    cart, checkout, purchase = sql_aggregation.funnel_conversion(client)
+    total, cart, purchase = sql_aggregation.funnel_conversion(client)
     return FunnelResponse(
-        reached_cart=cart, reached_checkout=checkout, reached_purchase=purchase
+        total_sessions=total, reached_cart=cart, reached_purchase=purchase
     )
 
 
 @app.get(
-    "/stat/revenue-by-city",
-    response_model=list[CityRevenue],
-    summary="Доход по городам",
-    description="Общий доход от покупок, сгруппированный по городам, отсортирован по убыванию",
+    "/stat/purchases-by-category",
+    response_model=list[CategoryPurchases],
+    summary="Покупки по категориям",
+    description="Количество транзакций, сгруппированных по категории товара (по последней известной categoryid), отсортировано по убыванию",
     tags=["Stat"],
 )
-def revenue_by_city(client=Depends(get_ch_client)):
-    rows = sql_aggregation.revenue_by_city(client)
-    return [CityRevenue(city=row[0], revenue=row[1]) for row in rows]
+def purchases_by_category(client=Depends(get_ch_client)):
+    rows = sql_aggregation.purchases_by_category(client)
+    return [
+        CategoryPurchases(category_id=str(row[0]), purchases=row[1]) for row in rows
+    ]
 
 
 @app.get(
     "/stat/daily",
     response_model=list[DailyMetric],
     summary="Показатели по дням",
-    description="Количество сессий и доход по дням, отсортированы по возрастанию даты",
+    description="Количество сессий и транзакций по дням, отсортированы по возрастанию даты",
     tags=["Stat"],
 )
 def daily(client=Depends(get_ch_client)):
     rows = sql_aggregation.daily_metrics(client)
     return [
-        DailyMetric(day=str(row[0]), sessions=row[1], revenue=row[2]) for row in rows
+        DailyMetric(day=str(row[0]), sessions=row[1], transactions=row[2])
+        for row in rows
     ]
 
 
@@ -87,7 +90,7 @@ def daily(client=Depends(get_ch_client)):
     "/stat/summary",
     response_model=SummaryResponse,
     summary="Сводные показатели",
-    description="Агрегации: средняя стоимость заказа, частоты негативных показателей, статистика сессий",
+    description="Агрегации: среднее число товаров в заказе, cart abandonment rate, view-to-cart rate, статистика сессий",
     tags=["Stat"],
 )
 def summary(client=Depends(get_ch_client)):
@@ -97,9 +100,9 @@ def summary(client=Depends(get_ch_client)):
     eps_avg, eps_median, eps_max = sql_aggregation.events_per_session(client)
 
     return SummaryResponse(
-        avg_order_value=sql_aggregation.avg_order_value(client),
+        avg_items_per_transaction=sql_aggregation.avg_items_per_transaction(client),
         cart_abandonment_rate=sql_aggregation.cart_abandonment_rate(client),
-        purchase_fail_rate=sql_aggregation.purchase_fail_rate(client),
+        view_to_cart_rate=sql_aggregation.view_to_cart_rate(client),
         session_duration_avg=duration_avg,
         session_duration_median=duration_median,
         session_duration_max=duration_max,

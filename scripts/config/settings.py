@@ -10,5 +10,7 @@ class Settings(BaseSettings):
     clickhouse_user: str = "default"
     clickhouse_password: str = "clickhouse_password"
 
+    data_dir: str = "data/raw"
+
 
 settings = Settings()

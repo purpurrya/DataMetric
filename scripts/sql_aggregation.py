@@ -10,22 +10,10 @@ logger = logging.getLogger(__name__)
 def funnel_conversion(client):
     result = client.query("""
         SELECT
-            countIf(
-                user_action IN ('add_to_cart', 'remove_from_cart', 'update_cart')
-            ) AS reached_cart,
-            countIf(user_action = 'checkout') AS reached_checkout,
-            countIf(user_action = 'purchase_success') AS reached_purchase
-        FROM (
-            SELECT DISTINCT session_id, user_action
-            FROM datametric.events
-            WHERE user_action IN (
-                'add_to_cart',
-                'remove_from_cart',
-                'update_cart',
-                'checkout',
-                'purchase_success'
-            )
-        )
+            uniqExact(session_id) AS total_sessions,
+            uniqExactIf(session_id, event_type = 'addtocart') AS reached_cart,
+            uniqExactIf(session_id, event_type = 'transaction') AS reached_purchase
+        FROM events
     """)
     return result.result_rows[0]
 
@@ -42,11 +30,15 @@ def events_per_session(client):
     return result.result_rows[0]
 
 
-def avg_order_value(client):
+def avg_items_per_transaction(client):
     result = client.query("""
-        SELECT avg(amount)
-        FROM events
-        WHERE user_action = 'purchase_success'
+        SELECT avg(item_count)
+        FROM (
+            SELECT transaction_id, count() AS item_count
+            FROM events
+            WHERE event_type = 'transaction' AND transaction_id IS NOT NULL
+            GROUP BY transaction_id
+        )
     """)
     return result.result_rows[0][0]
 
@@ -57,25 +49,22 @@ def cart_abandonment_rate(client):
             (cart_sessions - purchase_sessions) / cart_sessions AS abandonment_rate
         FROM (
             SELECT
-                uniqExactIf(
-                    session_id,
-                    user_action IN ('add_to_cart', 'remove_from_cart', 'update_cart')
-                ) AS cart_sessions,
-                uniqExactIf(session_id, user_action = 'purchase_success') AS purchase_sessions
+                uniqExactIf(session_id, event_type = 'addtocart') AS cart_sessions,
+                uniqExactIf(session_id, event_type = 'transaction') AS purchase_sessions
             FROM events
         )
     """)
     return result.result_rows[0][0]
 
 
-def purchase_fail_rate(client):
+def view_to_cart_rate(client):
     result = client.query("""
         SELECT
-            failed_sessions / checkout_sessions AS fail_rate
+            reached_cart / total_sessions AS rate
         FROM (
             SELECT
-                uniqExactIf(session_id, user_action = 'checkout') AS checkout_sessions,
-                uniqExactIf(session_id, user_action = 'purchase_fail') AS failed_sessions
+                uniqExact(session_id) AS total_sessions,
+                uniqExactIf(session_id, event_type = 'addtocart') AS reached_cart
             FROM events
         )
     """)
@@ -96,13 +85,23 @@ def session_duration(client):
     return result.result_rows[0]
 
 
-def revenue_by_city(client):
-    result = client.query("""
-        SELECT city, sum(amount) AS revenue
-        FROM events
-        WHERE user_action = 'purchase_success'
-        GROUP BY city
-        ORDER BY revenue DESC
+def purchases_by_category(client, limit: int = 20):
+    result = client.query(f"""
+        WITH item_category AS (
+            SELECT item_id, argMax(value, timestamp) AS category_id
+            FROM item_properties
+            WHERE property = 'categoryid'
+            GROUP BY item_id
+        )
+        SELECT
+            ic.category_id AS category_id,
+            count() AS purchases
+        FROM events AS e
+        INNER JOIN item_category AS ic ON e.item_id = ic.item_id
+        WHERE e.event_type = 'transaction'
+        GROUP BY category_id
+        ORDER BY purchases DESC
+        LIMIT {limit}
     """)
     return result.result_rows
 
@@ -112,7 +111,7 @@ def daily_metrics(client):
         SELECT
             toDate(timestamp) AS day,
             uniqExact(session_id) AS sessions,
-            sumIf(amount, user_action = 'purchase_success') AS revenue
+            countIf(event_type = 'transaction') AS transactions
         FROM events
         GROUP BY day
         ORDER BY day
@@ -125,9 +124,9 @@ if __name__ == "__main__":
 
     logger.info("funnel conversion: %s", funnel_conversion(client))
     logger.info("events per session: %s", events_per_session(client))
-    logger.info("avg order value: %s", avg_order_value(client))
+    logger.info("avg items per transaction: %s", avg_items_per_transaction(client))
     logger.info("cart abandonment rate: %s", cart_abandonment_rate(client))
-    logger.info("purchase fail rate: %s", purchase_fail_rate(client))
+    logger.info("view to cart rate: %s", view_to_cart_rate(client))
     logger.info("session duration: %s", session_duration(client))
-    logger.info("revenue by city: %s", revenue_by_city(client))
+    logger.info("purchases by category: %s", purchases_by_category(client))
     logger.info("daily metrics: %s", daily_metrics(client))
