@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import pandas as pd
+import redis as redis_sync
 
 from scripts.ch_client import get_client
 from scripts.config.logging import set_logging
@@ -63,6 +64,12 @@ def load_category_tree(csv_path: Path) -> pd.DataFrame:
     return df[["categoryid", "parentid"]]
 
 
+def clear_cache() -> None:
+    r = redis_sync.Redis(host=settings.redis_host, port=settings.redis_port)
+    r.flushdb()
+    logger.info("cache cleared")
+
+
 def main() -> None:
     data_dir = Path(settings.data_dir)
 
@@ -108,6 +115,8 @@ def main() -> None:
     assert counts["category_tree"] == len(categories), (
         "category_tree row count mismatch"
     )
+
+    clear_cache()
 
 
 if __name__ == "__main__":

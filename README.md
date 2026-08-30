@@ -37,7 +37,7 @@ docker compose up -d
 
 ### Скачивание датасета
 Используется [Retail Rocket ecommerce dataset](https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset).
-Нужен настроенный Kaggle API токен (`kaggle.json` в `~/.kaggle/`, см. [документацию Kaggle API](https://www.kaggle.com/docs/api)).
+Нужен настроенный Kaggle API токен.
 ```bash
 make download-data
 ```

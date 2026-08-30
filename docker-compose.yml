@@ -12,12 +12,16 @@ services:
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
       - CLICKHOUSE_DB=${CLICKHOUSE_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - DEBUG=true
     volumes:
       - ./scripts:/app/scripts
       - ./main.py:/app/main.py
     depends_on:
       clickhouse:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - datametric-network
@@ -48,10 +52,28 @@ services:
       retries: 5
     restart: unless-stopped
 
+  redis:
+      image: redis:7-alpine
+      container_name: datametric-redis
+      ports:
+        - "6379:6379"
+      volumes:
+        - redis_data:/data
+      networks:
+        - datametric-network
+      healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 5s
+        timeout: 3s
+        retries: 5
+      restart: unless-stopped
+
 networks:
   datametric-network:
     driver: bridge
 
 volumes:
   clickhouse_data:
+    driver: local
+  redis_data:
     driver: local
