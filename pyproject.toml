@@ -9,6 +9,7 @@ dependencies = [
     "numpy>=1.26.0",
     "pandas>=2.1.0",
     "kaggle>=2.2.4",
+    "fastapi-cache2[redis]>=0.2.2",
 ]
 
 [tool.uv]
