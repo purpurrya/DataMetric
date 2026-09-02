@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 import clickhouse_connect
+from clickhouse_connect.driver.asyncclient import AsyncClient
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi_cache import FastAPICache
@@ -44,12 +46,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="DataMetric API", version="2.0.0", lifespan=lifespan)
 
 
-def get_ch_client(request: Request):
+def get_ch_client(request: Request) -> AsyncClient:
     return request.app.state.ch_client
 
 
+ChClient = Annotated[AsyncClient, Depends(get_ch_client)]
+
+
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
-async def health(client=Depends(get_ch_client)):
+async def health(client: ChClient):
     try:
         result = await client.query("SELECT COUNT(*) FROM events")
         row_count = result.result_rows[0][0]
@@ -63,7 +68,7 @@ async def health(client=Depends(get_ch_client)):
 
 @app.get("/stat/funnel", response_model=FunnelResponse, tags=["Stat"])
 @cache(expire=300)
-async def funnel(client=Depends(get_ch_client)):
+async def funnel(client: ChClient):
     total, cart, purchase = await sql_aggregation.funnel_conversion(client)
     return FunnelResponse(
         total_sessions=total, reached_cart=cart, reached_purchase=purchase
@@ -74,7 +79,7 @@ async def funnel(client=Depends(get_ch_client)):
     "/stat/purchases-by-category", response_model=list[CategoryPurchases], tags=["Stat"]
 )
 @cache(expire=300)
-async def purchases_by_category(client=Depends(get_ch_client)):
+async def purchases_by_category(client: ChClient):
     rows = await sql_aggregation.purchases_by_category(client)
     return [
         CategoryPurchases(category_id=str(row[0]), purchases=row[1]) for row in rows
@@ -83,7 +88,7 @@ async def purchases_by_category(client=Depends(get_ch_client)):
 
 @app.get("/stat/daily", response_model=list[DailyMetric], tags=["Stat"])
 @cache(expire=300)
-async def daily(client=Depends(get_ch_client)):
+async def daily(client: ChClient):
     rows = await sql_aggregation.daily_metrics(client)
     return [
         DailyMetric(day=str(row[0]), sessions=row[1], transactions=row[2])
@@ -93,7 +98,7 @@ async def daily(client=Depends(get_ch_client)):
 
 @app.get("/stat/summary", response_model=SummaryResponse, tags=["Stat"])
 @cache(expire=300)
-async def summary(client=Depends(get_ch_client)):
+async def summary(client: ChClient):
     (
         duration_avg,
         duration_median,
