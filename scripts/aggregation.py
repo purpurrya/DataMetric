@@ -9,13 +9,11 @@ set_logging()
 logger = logging.getLogger(__name__)
 
 
-def funnel_conversion(df: pd.DataFrame) -> None:
+def funnel_conversion(df: pd.DataFrame) -> tuple[int, int, int]:
     total_sessions = df["session_id"].nunique()
     reached_cart = df[df["event_type"] == "addtocart"]["session_id"].nunique()
     reached_purchase = df[df["event_type"] == "transaction"]["session_id"].nunique()
-
-    logger.info("reach cart:     %.3f", reached_cart / total_sessions)
-    logger.info("reach purchase: %.3f", reached_purchase / reached_cart)
+    return total_sessions, reached_cart, reached_purchase
 
 
 def events_per_session(df: pd.DataFrame) -> pd.Series:
@@ -57,7 +55,10 @@ def purchases_by_category(df: pd.DataFrame, item_categories: pd.Series) -> pd.Se
 def daily_metrics(df: pd.DataFrame) -> pd.DataFrame:
     daily_sessions = df.groupby(df["timestamp"].dt.date)["session_id"].nunique()
     daily_transactions = (
-        df[df["event_type"] == "transaction"].groupby(df["timestamp"].dt.date).size()
+        df[df["event_type"] == "transaction"]
+        .groupby(df["timestamp"].dt.date)
+        .size()
+        .reindex(daily_sessions.index, fill_value=0)
     )
     return pd.DataFrame(
         {"sessions": daily_sessions, "transactions": daily_transactions}
@@ -78,7 +79,7 @@ if __name__ == "__main__":
 
     events_df = _sessionize(events_df)
 
-    funnel_conversion(events_df)
+    logger.info("funnel conversion: %s", funnel_conversion(events_df))
     logger.info("events per session:\n%s", events_per_session(events_df).describe())
     logger.info("avg items per transaction: %s", avg_items_per_transaction(events_df))
     logger.info("cart abandonment rate: %s", cart_abandonment_rate(events_df))
