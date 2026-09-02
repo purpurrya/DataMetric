@@ -46,7 +46,7 @@ def session_duration(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def purchases_by_category(df: pd.DataFrame, item_categories: pd.Series) -> pd.Series:
-    """item_categories: item_id -> category_id (см. загрузку ниже)."""
+    """item_categories: item_id -> category_id (see loading below)"""
     purchases = df[df["event_type"] == "transaction"].copy()
     purchases["category_id"] = purchases["item_id"].map(item_categories)
     return purchases.groupby("category_id").size().sort_values(ascending=False)

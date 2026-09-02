@@ -54,22 +54,10 @@ http://localhost:8000/docs
 
 ### Дашборд (Streamlit)
 
-В Docker Compose дашборд поднимается вместе с остальными сервисами и доступен на `http://localhost:8501`.
-
-Чтобы запустить дашборд без Docker (например, для разработки):
-```bash
-# 1. Поднять только ClickHouse и Redis в Docker
-docker compose up -d clickhouse redis
-
-# 2. Запустить API локально (host=localhost уже настроен в .env)
-make dev
-
-# 3. В отдельном терминале запустить дашборд
-make dashboard
-# или напрямую:
-uv run --group dashboard streamlit run dashboard/app.py
+Поднимается вместе с остальными сервисами: 
 ```
-Дашборд откроется на `http://localhost:8501` и обращается к API по адресу из переменной окружения `API_URL` (по умолчанию `http://localhost:8000`).
+http://localhost:8501
+```
 
 ### Тесты
 ```bash

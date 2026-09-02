@@ -45,9 +45,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="DataMetric API",
-    description="Аналитика поведения пользователей интернет-магазина: воронка продаж, "
-    "сессии и метрики по датасету Retail Rocket.",
-    version="2.0.0",
+    version="2.3.0",
     lifespan=lifespan,
 )
 
@@ -62,8 +60,8 @@ ChClient = Annotated[AsyncClient, Depends(get_ch_client)]
 @app.get(
     "/health",
     response_model=HealthResponse,
-    tags=["Здоровье"],
-    summary="Проверка доступности ClickHouse",
+    tags=["Health"],
+    summary="Check ClickHouse availability",
 )
 async def health(client: ChClient):
     try:
@@ -80,8 +78,8 @@ async def health(client: ChClient):
 @app.get(
     "/stat/funnel",
     response_model=FunnelResponse,
-    tags=["Статистика"],
-    summary="Воронка продаж: просмотр → корзина → покупка",
+    tags=["Stats"],
+    summary="Sales funnel: view → cart → purchase",
 )
 @cache(expire=300)
 async def funnel(client: ChClient):
@@ -94,8 +92,8 @@ async def funnel(client: ChClient):
 @app.get(
     "/stat/purchases-by-category",
     response_model=list[CategoryPurchases],
-    tags=["Статистика"],
-    summary="Количество покупок по категориям товара",
+    tags=["Stats"],
+    summary="Number of purchases by product category",
 )
 @cache(expire=300)
 async def purchases_by_category(client: ChClient):
@@ -108,8 +106,8 @@ async def purchases_by_category(client: ChClient):
 @app.get(
     "/stat/daily",
     response_model=list[DailyMetric],
-    tags=["Статистика"],
-    summary="Сессии и транзакции по дням",
+    tags=["Stats"],
+    summary="Sessions and transactions by day",
 )
 @cache(expire=300)
 async def daily(client: ChClient):
@@ -123,8 +121,8 @@ async def daily(client: ChClient):
 @app.get(
     "/stat/summary",
     response_model=SummaryResponse,
-    tags=["Статистика"],
-    summary="Сводные метрики: товары в заказе, отказы от корзины, длительность сессий",
+    tags=["Stats"],
+    summary="Summary metrics: items per order, cart abandonment, session duration",
 )
 @cache(expire=300)
 async def summary(client: ChClient):
