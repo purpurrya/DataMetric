@@ -68,7 +68,9 @@ async def session_duration(client):
     result = await client.query("""
         SELECT avg(duration), median(duration), max(duration)
         FROM (
-            SELECT session_id, dateDiff('second', min(timestamp), max(timestamp)) AS duration
+            SELECT
+                session_id,
+                dateDiff('second', min(timestamp), max(timestamp)) AS duration
             FROM events
             GROUP BY session_id
         )

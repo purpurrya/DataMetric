@@ -1,17 +1,22 @@
+import pytest
 from fastapi.testclient import TestClient
 
-import main
-from main import app
+from main import app, get_ch_client
 from scripts import sql_aggregation
 
 
 class _FakeClient:
-    def close(self):
-        pass
+    pass
+
+
+@pytest.fixture(autouse=True)
+def _override_ch_client():
+    app.dependency_overrides[get_ch_client] = lambda: _FakeClient()
+    yield
+    app.dependency_overrides.clear()
 
 
 def test_funnel_endpoint_returns_metrics(mocker):
-    mocker.patch.object(main, "get_client", return_value=_FakeClient())
     mocker.patch.object(
         sql_aggregation, "funnel_conversion", return_value=(100, 40, 10)
     )
@@ -28,7 +33,6 @@ def test_funnel_endpoint_returns_metrics(mocker):
 
 
 def test_funnel_endpoint_returns_500_when_aggregation_fails(mocker):
-    mocker.patch.object(main, "get_client", return_value=_FakeClient())
     mocker.patch.object(
         sql_aggregation,
         "funnel_conversion",

@@ -28,9 +28,7 @@ try:
 
     summary = fetch("/stat/summary")
     col1, col2, col3 = st.columns(3)
-    col1.metric(
-        "Items per order (avg)", round(summary["avg_items_per_transaction"], 2)
-    )
+    col1.metric("Items per order (avg)", round(summary["avg_items_per_transaction"], 2))
     col2.metric("Cart abandonment", f"{summary['cart_abandonment_rate']:.1%}")
     col3.metric("View-to-cart conversion", f"{summary['view_to_cart_rate']:.1%}")
 
@@ -49,8 +47,7 @@ try:
 
 except httpx.RequestError:
     st.error(
-        f"Could not connect to the API at {API_URL}. "
-        "Make sure the service is running"
+        f"Could not connect to the API at {API_URL}. Make sure the service is running"
     )
 except httpx.HTTPStatusError as exc:
     st.error(f"API returned an error: {exc.response.status_code} {exc.response.text}")

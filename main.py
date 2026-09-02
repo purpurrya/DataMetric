@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-import clickhouse_connect
 from clickhouse_connect.driver.asyncclient import AsyncClient
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -18,18 +17,13 @@ from schemas import (
     SummaryResponse,
 )
 from scripts import sql_aggregation
+from scripts.ch_client import get_async_client
 from scripts.config.settings import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.ch_client = await clickhouse_connect.get_async_client(
-        host=settings.clickhouse_host,
-        port=settings.clickhouse_port,
-        database=settings.clickhouse_db,
-        username=settings.clickhouse_user,
-        password=settings.clickhouse_password,
-    )
+    app.state.ch_client = await get_async_client()
     redis = None
     try:
         redis = aioredis.from_url(

@@ -18,6 +18,7 @@ services:
     volumes:
       - ./scripts:/app/scripts
       - ./main.py:/app/main.py
+      - ./schemas.py:/app/schemas.py
     depends_on:
       clickhouse:
         condition: service_healthy

@@ -63,3 +63,6 @@ data/raw/
 
 # Editor backups
 *.orig
+
+# Streamlit local config/secrets
+.streamlit/
