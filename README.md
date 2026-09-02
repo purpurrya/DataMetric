@@ -23,7 +23,7 @@ cd DataMetric
 
 ### Установка зависимостей
 ```bash
-uv sync
+uv sync --all-groups
 ```
 
 ### Настройка окружения
@@ -52,6 +52,25 @@ API будет доступно по адресу:
 http://localhost:8000/docs
 ```
 
+### Дашборд (Streamlit)
+
+В Docker Compose дашборд поднимается вместе с остальными сервисами и доступен на `http://localhost:8501`.
+
+Чтобы запустить дашборд без Docker (например, для разработки):
+```bash
+# 1. Поднять только ClickHouse и Redis в Docker
+docker compose up -d clickhouse redis
+
+# 2. Запустить API локально (host=localhost уже настроен в .env)
+make dev
+
+# 3. В отдельном терминале запустить дашборд
+make dashboard
+# или напрямую:
+uv run --group dashboard streamlit run dashboard/app.py
+```
+Дашборд откроется на `http://localhost:8501` и обращается к API по адресу из переменной окружения `API_URL` (по умолчанию `http://localhost:8000`).
+
 ### Тесты
 ```bash
 make test
@@ -71,8 +90,12 @@ make test
 ## Структура проекта
 - `main.py` — FastAPI-приложение
 - `schemas.py` — Pydantic-модели ответов
+- `dashboard/app.py` — Streamlit-дашборд, читает данные из API
 - `scripts/ch_loader.py` — загрузка датасета (events, item_properties, category_tree) в ClickHouse
 - `scripts/aggregation.py` — расчёт метрик на pandas
 - `scripts/sql_aggregation.py` — те же метрики на SQL
+- `scripts/config/` — настройки (`settings.py`) и логирование (`logging.py`)
 - `sql/` — миграции ClickHouse
 - `tests/` — тесты
+- `Dockerfile` — образ API
+- `Dockerfile.dashboard` — образ дашборда

@@ -7,4 +7,7 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/
-site_actions.csv
+data/raw/
+tests/
+README.md
+.streamlit/

@@ -43,7 +43,13 @@ async def lifespan(app: FastAPI):
         await app.state.ch_client.close()
 
 
-app = FastAPI(title="DataMetric API", version="2.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="DataMetric API",
+    description="Аналитика поведения пользователей интернет-магазина: воронка продаж, "
+    "сессии и метрики по датасету Retail Rocket.",
+    version="2.0.0",
+    lifespan=lifespan,
+)
 
 
 def get_ch_client(request: Request) -> AsyncClient:
@@ -53,7 +59,12 @@ def get_ch_client(request: Request) -> AsyncClient:
 ChClient = Annotated[AsyncClient, Depends(get_ch_client)]
 
 
-@app.get("/health", response_model=HealthResponse, tags=["Health"])
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Здоровье"],
+    summary="Проверка доступности ClickHouse",
+)
 async def health(client: ChClient):
     try:
         result = await client.query("SELECT COUNT(*) FROM events")
@@ -66,7 +77,12 @@ async def health(client: ChClient):
     return HealthResponse(status="ok", events_rows=row_count)
 
 
-@app.get("/stat/funnel", response_model=FunnelResponse, tags=["Stat"])
+@app.get(
+    "/stat/funnel",
+    response_model=FunnelResponse,
+    tags=["Статистика"],
+    summary="Воронка продаж: просмотр → корзина → покупка",
+)
 @cache(expire=300)
 async def funnel(client: ChClient):
     total, cart, purchase = await sql_aggregation.funnel_conversion(client)
@@ -76,7 +92,10 @@ async def funnel(client: ChClient):
 
 
 @app.get(
-    "/stat/purchases-by-category", response_model=list[CategoryPurchases], tags=["Stat"]
+    "/stat/purchases-by-category",
+    response_model=list[CategoryPurchases],
+    tags=["Статистика"],
+    summary="Количество покупок по категориям товара",
 )
 @cache(expire=300)
 async def purchases_by_category(client: ChClient):
@@ -86,7 +105,12 @@ async def purchases_by_category(client: ChClient):
     ]
 
 
-@app.get("/stat/daily", response_model=list[DailyMetric], tags=["Stat"])
+@app.get(
+    "/stat/daily",
+    response_model=list[DailyMetric],
+    tags=["Статистика"],
+    summary="Сессии и транзакции по дням",
+)
 @cache(expire=300)
 async def daily(client: ChClient):
     rows = await sql_aggregation.daily_metrics(client)
@@ -96,7 +120,12 @@ async def daily(client: ChClient):
     ]
 
 
-@app.get("/stat/summary", response_model=SummaryResponse, tags=["Stat"])
+@app.get(
+    "/stat/summary",
+    response_model=SummaryResponse,
+    tags=["Статистика"],
+    summary="Сводные метрики: товары в заказе, отказы от корзины, длительность сессий",
+)
 @cache(expire=300)
 async def summary(client: ChClient):
     (

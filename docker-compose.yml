@@ -27,6 +27,23 @@ services:
       - datametric-network
     restart: unless-stopped
 
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: datametric-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://datametric:8000
+    volumes:
+      - ./dashboard:/app/dashboard
+    depends_on:
+      - datametric
+    networks:
+      - datametric-network
+    restart: unless-stopped
+
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     container_name: datametric-clickhouse
@@ -53,20 +70,20 @@ services:
     restart: unless-stopped
 
   redis:
-      image: redis:7-alpine
-      container_name: datametric-redis
-      ports:
-        - "6379:6379"
-      volumes:
-        - redis_data:/data
-      networks:
-        - datametric-network
-      healthcheck:
-        test: ["CMD", "redis-cli", "ping"]
-        interval: 5s
-        timeout: 3s
-        retries: 5
-      restart: unless-stopped
+    image: redis:7-alpine
+    container_name: datametric-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - datametric-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
 
 networks:
   datametric-network:
