@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
         redis = aioredis.from_url(
             f"redis://{settings.redis_host}:{settings.redis_port}"
         )
-        FastAPICache.init(RedisBackend(redis), prefix="datametric-cache")
+        FastAPICache.init(RedisBackend(redis), prefix=settings.cache_prefix)
         yield
     finally:
         if redis:

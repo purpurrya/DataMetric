@@ -6,10 +6,10 @@ dependencies = [
     "fastapi[standard]>=0.140.5",
     "clickhouse-connect>=0.7.0",
     "pydantic-settings>=2.0.0",
-    "numpy>=1.26.0",
     "pandas>=2.1.0",
     "kaggle>=2.2.4",
     "fastapi-cache2[redis]>=0.2.2",
+    "redis>=4.6.0",
 ]
 
 [tool.uv]
@@ -22,7 +22,15 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
 [dependency-groups]
 dev = [
     "ruff>=0.16.2",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-mock>=3.14.0",
 ]

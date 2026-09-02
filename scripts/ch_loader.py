@@ -66,8 +66,10 @@ def load_category_tree(csv_path: Path) -> pd.DataFrame:
 
 def clear_cache() -> None:
     r = redis_sync.Redis(host=settings.redis_host, port=settings.redis_port)
-    r.flushdb()
-    logger.info("cache cleared")
+    keys = list(r.scan_iter(match=f"{settings.cache_prefix}:*"))
+    if keys:
+        r.delete(*keys)
+    logger.info("cache cleared (%d keys)", len(keys))
 
 
 def main() -> None:

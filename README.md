@@ -2,13 +2,14 @@
 
 Пет-проект для практики. 
 На основе Retail Rocket ecommerce dataset (kaggle.com/datasets/retailrocket/ecommerce-dataset) загружает данные в ClickHouse и отдаёт аналитику через FastAPI.
-Первая версия, где вместо работы с реальным датасетом осуществлялась работа с генерируемыми синтетическими данными хранится в ветке synth-ver репозитория.
+Первая версия, где вместо работы с реальным датасетом осуществлялась работа с генерируемыми синтетическими данными хранится в ветке `synth-ver` репозитория.
 
 ## Технологии
 - Python
 - FastAPI
 - ClickHouse
-- Pandas / NumPy
+- Redis
+- Pandas
 - Docker Compose
 - uv
 
@@ -37,7 +38,6 @@ docker compose up -d
 
 ### Скачивание датасета
 Используется [Retail Rocket ecommerce dataset](https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset).
-Нужен настроенный Kaggle API токен.
 ```bash
 make download-data
 ```
@@ -50,6 +50,11 @@ make load
 API будет доступно по адресу:
 ```
 http://localhost:8000/docs
+```
+
+### Тесты
+```bash
+make test
 ```
 
 ## API
@@ -70,6 +75,4 @@ http://localhost:8000/docs
 - `scripts/aggregation.py` — расчёт метрик на pandas
 - `scripts/sql_aggregation.py` — те же метрики на SQL
 - `sql/` — миграции ClickHouse
-
-Версия проекта на синтетически сгенерированных данных (до перехода на Retail
-Rocket) сохранена в ветке `synth-ver`.
+- `tests/` — тесты

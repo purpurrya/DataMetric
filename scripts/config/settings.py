@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     redis_host: str = "localhost"
     redis_port: int = 6379
+    cache_prefix: str = "datametric-cache"
 
     data_dir: str = "data/raw"
 
