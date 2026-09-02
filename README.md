@@ -1,7 +1,9 @@
 # DataMetric
 
 Пет-проект для практики. 
+
 На основе Retail Rocket ecommerce dataset (kaggle.com/datasets/retailrocket/ecommerce-dataset) загружает данные в ClickHouse и отдаёт аналитику через FastAPI.
+
 Первая версия, где вместо работы с реальным датасетом осуществлялась работа с генерируемыми синтетическими данными хранится в ветке `synth-ver` репозитория.
 
 ## Технологии
