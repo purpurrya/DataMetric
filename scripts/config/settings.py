@@ -10,9 +10,6 @@ class Settings(BaseSettings):
     clickhouse_user: str = "default"
     clickhouse_password: str = "clickhouse_password"
 
-    redis_host: str = "localhost"
-    redis_port: int = 6379
-
     data_dir: str = "data/raw"
 
 
