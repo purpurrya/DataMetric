@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Response
+import clickhouse_connect
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
@@ -14,12 +16,18 @@ from schemas import (
     SummaryResponse,
 )
 from scripts import sql_aggregation
-from scripts.ch_client import get_client
 from scripts.config.settings import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.ch_client = await clickhouse_connect.get_async_client(
+        host=settings.clickhouse_host,
+        port=settings.clickhouse_port,
+        database=settings.clickhouse_db,
+        username=settings.clickhouse_user,
+        password=settings.clickhouse_password,
+    )
     redis = None
     try:
         redis = aioredis.from_url(
@@ -30,40 +38,33 @@ async def lifespan(app: FastAPI):
     finally:
         if redis:
             await redis.close()
+        await app.state.ch_client.close()
 
 
 app = FastAPI(title="DataMetric API", version="2.0.0", lifespan=lifespan)
 
 
-def get_ch_client():
-    client = get_client()
-    try:
-        yield client
-    finally:
-        client.close()
+def get_ch_client(request: Request):
+    return request.app.state.ch_client
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
-def health(client=Depends(get_ch_client)):
+async def health(client=Depends(get_ch_client)):
     try:
-        row_count = client.query("SELECT COUNT(*) FROM events").result_rows[0][0]
+        result = await client.query("SELECT COUNT(*) FROM events")
+        row_count = result.result_rows[0][0]
     except Exception as exc:
-        return Response(
-            content=f'{{"status": "error", "detail": "{exc}"}}',
+        return JSONResponse(
             status_code=503,
-            media_type="application/json",
+            content={"status": "error", "detail": str(exc)},
         )
     return HealthResponse(status="ok", events_rows=row_count)
 
 
 @app.get("/stat/funnel", response_model=FunnelResponse, tags=["Stat"])
 @cache(expire=300)
-def funnel():
-    client = get_client()
-    try:
-        total, cart, purchase = sql_aggregation.funnel_conversion(client)
-    finally:
-        client.close()
+async def funnel(client=Depends(get_ch_client)):
+    total, cart, purchase = await sql_aggregation.funnel_conversion(client)
     return FunnelResponse(
         total_sessions=total, reached_cart=cart, reached_purchase=purchase
     )
@@ -73,12 +74,8 @@ def funnel():
     "/stat/purchases-by-category", response_model=list[CategoryPurchases], tags=["Stat"]
 )
 @cache(expire=300)
-def purchases_by_category():
-    client = get_client()
-    try:
-        rows = sql_aggregation.purchases_by_category(client)
-    finally:
-        client.close()
+async def purchases_by_category(client=Depends(get_ch_client)):
+    rows = await sql_aggregation.purchases_by_category(client)
     return [
         CategoryPurchases(category_id=str(row[0]), purchases=row[1]) for row in rows
     ]
@@ -86,12 +83,8 @@ def purchases_by_category():
 
 @app.get("/stat/daily", response_model=list[DailyMetric], tags=["Stat"])
 @cache(expire=300)
-def daily():
-    client = get_client()
-    try:
-        rows = sql_aggregation.daily_metrics(client)
-    finally:
-        client.close()
+async def daily(client=Depends(get_ch_client)):
+    rows = await sql_aggregation.daily_metrics(client)
     return [
         DailyMetric(day=str(row[0]), sessions=row[1], transactions=row[2])
         for row in rows
@@ -100,24 +93,23 @@ def daily():
 
 @app.get("/stat/summary", response_model=SummaryResponse, tags=["Stat"])
 @cache(expire=300)
-def summary():
-    client = get_client()
-    try:
-        duration_avg, duration_median, duration_max = sql_aggregation.session_duration(
+async def summary(client=Depends(get_ch_client)):
+    (
+        duration_avg,
+        duration_median,
+        duration_max,
+    ) = await sql_aggregation.session_duration(client)
+    eps_avg, eps_median, eps_max = await sql_aggregation.events_per_session(client)
+    return SummaryResponse(
+        avg_items_per_transaction=await sql_aggregation.avg_items_per_transaction(
             client
-        )
-        eps_avg, eps_median, eps_max = sql_aggregation.events_per_session(client)
-        result = SummaryResponse(
-            avg_items_per_transaction=sql_aggregation.avg_items_per_transaction(client),
-            cart_abandonment_rate=sql_aggregation.cart_abandonment_rate(client),
-            view_to_cart_rate=sql_aggregation.view_to_cart_rate(client),
-            session_duration_avg=duration_avg,
-            session_duration_median=duration_median,
-            session_duration_max=duration_max,
-            events_per_session_avg=eps_avg,
-            events_per_session_median=eps_median,
-            events_per_session_max=eps_max,
-        )
-    finally:
-        client.close()
-    return result
+        ),
+        cart_abandonment_rate=await sql_aggregation.cart_abandonment_rate(client),
+        view_to_cart_rate=await sql_aggregation.view_to_cart_rate(client),
+        session_duration_avg=duration_avg,
+        session_duration_median=duration_median,
+        session_duration_max=duration_max,
+        events_per_session_avg=eps_avg,
+        events_per_session_median=eps_median,
+        events_per_session_max=eps_max,
+    )

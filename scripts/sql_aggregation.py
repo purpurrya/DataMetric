@@ -113,7 +113,9 @@ async def _main():
     try:
         logger.info("funnel conversion: %s", await funnel_conversion(client))
         logger.info("events per session: %s", await events_per_session(client))
-        logger.info("avg items per transaction: %s", await avg_items_per_transaction(client))
+        logger.info(
+            "avg items per transaction: %s", await avg_items_per_transaction(client)
+        )
         logger.info("cart abandonment rate: %s", await cart_abandonment_rate(client))
         logger.info("view to cart rate: %s", await view_to_cart_rate(client))
         logger.info("session duration: %s", await session_duration(client))
